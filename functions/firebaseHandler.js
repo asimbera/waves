@@ -23,4 +23,10 @@ admin.initializeApp({
   storageBucket: 'waves-b5645.appspot.com'
 });
 
-module.exports = admin.storage().bucket();
+const collection = admin.firestore().collection('metadata');
+const bucket = admin.storage().bucket();
+
+module.exports = {
+  collection,
+  bucket
+};

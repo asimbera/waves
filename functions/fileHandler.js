@@ -1,6 +1,6 @@
 const request = require('request');
 const day = require('dayjs');
-const bucket = require('./firebaseHandler');
+const { bucket } = require('./firebaseHandler');
 
 module.exports = {
   fetchMedia: async (url, filename, cb) => {

@@ -9,7 +9,6 @@ const bot = new Telegram(config.BOT_TOKEN, config.BOT_OPTIONS);
 // run loaders
 require('./loader/hookLoader')(bot);
 require('./loader/cookieLoader');
-require('./loader/mongoLoader');
 
 bot.onText(/\/start/, Handler.welcomeHandler(bot));
 bot.onText(URL_REGEX, Handler.linkHandler(bot));

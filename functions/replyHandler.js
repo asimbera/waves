@@ -1,6 +1,6 @@
 const Media = require('./mediaHandler');
-const Metadata = require('../models/mdModel');
-const Template = require('./templateHandler');
+const { collection } = require('./firebaseHandler');
+const { Template } = require('./templateHandler');
 const Downloader = require('./fileHandler');
 const media = require('../loader/cookieLoader');
 
@@ -29,7 +29,6 @@ const linkHandler = bot => async (msg, match) => {
   }) => {
     return JSON.parse(
       JSON.stringify({
-        e_songid,
         title,
         album,
         singers,
@@ -43,34 +42,36 @@ const linkHandler = bot => async (msg, match) => {
   try {
     const absoluteUrl = await Media.getAbsoluteUrl(match[0]);
     const e_songid = absoluteUrl.split('/').pop();
-    Metadata.findOne({ e_songid }, async (err, data) => {
-      if (err) {
-        console.log(err);
-        return;
-      }
-      if (data) {
-        const template = Template(data, msg.chat.id, waitMsg.message_id);
-        bot.editMessageText(template.text, {
-          chat_id: chatId,
-          message_id: waitMsg.message_id,
-          parse_mode: 'Markdown',
-          disable_web_page_preview: true,
-          reply_markup: template.markup()
-        });
-      } else {
-        const metaData = await Media.getMetaData(absoluteUrl);
-        const filteredMetadata = filteredMeta(metaData);
-        const doc = await Metadata.create(filteredMetadata);
-        const template = Template(doc, msg.chat.id, waitMsg.message_id);
-        await bot.editMessageText(template.text, {
-          chat_id: chatId,
-          message_id: waitMsg.message_id,
-          parse_mode: 'Markdown',
-          disable_web_page_preview: true,
-          reply_markup: template.markup()
-        });
-      }
-    });
+    collection
+      .doc(e_songid)
+      .get()
+      .then(async doc => {
+        if (doc.exists) {
+          console.log('found!');
+          const template = Template(doc.data(), e_songid);
+          bot.editMessageText(template.text, {
+            chat_id: chatId,
+            message_id: waitMsg.message_id,
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true,
+            reply_markup: template.markup()
+          });
+        } else {
+          console.log('not found');
+          const metaData = await Media.getMetaData(absoluteUrl);
+          const filteredMetadata = filteredMeta(metaData);
+          collection.doc(e_songid).set(filteredMetadata);
+          const template = Template(filteredMetadata, e_songid);
+          await bot.editMessageText(template.text, {
+            chat_id: chatId,
+            message_id: waitMsg.message_id,
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true,
+            reply_markup: template.markup()
+          });
+        }
+      })
+      .catch(console.log);
   } catch (err) {
     bot.editMessageText(err.message, {
       chat_id: chatId,
@@ -92,42 +93,45 @@ const callbackHandler = bot => query => {
   const cancel = query.data.match(cancelRegex);
   const chatId = query.from.id;
   const message_id = query.message.message_id;
-  const br = 128;
+  const envelope = { chatId, message_id };
   if (download) {
+    const br = 128;
+    const e_songid = download[1];
+    const filename = `${e_songid}_${br}.mp3`;
     bot.sendChatAction(chatId, 'upload_audio');
-    Metadata.findOne({ e_songid: download[1] }, async (err, data) => {
-      try {
-        let filename = data.e_songid + '_' + br + '.mp3';
-        const savename = `${data.title} - ${data.album} (${data.year}).mp3`;
-        // console.log(`Download Requested: ${data.title}\nFile: ${filename}`);
-        const ifExists = await Downloader.checkExists(filename);
-        if (ifExists) {
-          // TODO
-          // console.log(await Downloader.getUrl(filename, savename));
-          const publicUrl = await Downloader.getUrl(filename, savename);
-          bot.editMessageReplyMarkup(markupBuilder(publicUrl), {
-            chat_id: chatId,
-            message_id: message_id
-          });
-        } else {
-          const cdn_res = await media.getMediaInfo(data.url, br);
-          // console.log(`auth_url: ${cdn_res.auth_url}`);
-          Downloader.fetchMedia(cdn_res.auth_url, filename, async () => {
-            // TODO
-            console.log(`Downloaded: ${filename}`);
-            const publicUrl = await Downloader.getUrl(filename, savename);
-            bot.editMessageReplyMarkup(markupBuilder(publicUrl), {
-              chat_id: chatId,
-              message_id: message_id
-            });
-          });
-        }
-      } catch (e) {
-        console.log(e.message);
-      }
-    });
+    collection
+      .doc(e_songid)
+      .get()
+      .then(doc => {
+        sendMedia(bot)(doc, envelope, filename);
+      })
+      .catch(err => console.log(err));
   } else if (cancel) {
     bot.deleteMessage(chatId, message_id);
+  }
+};
+
+const sendMedia = bot => async (doc, envelope, filename) => {
+  if (doc.exists) {
+    const { title, album, year } = doc.data();
+    const savename = `${title} - ${album} (${year}).mp3`;
+    const fileExist = await Downloader.checkExists(filename);
+    if (fileExist) {
+      const url = await Downloader.getUrl(filename, savename);
+      bot.editMessageReplyMarkup(markupBuilder(url), {
+        chat_id: envelope.chatId,
+        message_id: envelope.message_id
+      });
+    } else {
+      const url = await media.getMediaInfo(doc.data().url, 128);
+      Downloader.fetchMedia(url.auth_url, filename, async () => {
+        const url = await Downloader.getUrl(filename, savename);
+        bot.editMessageReplyMarkup(markupBuilder(url), {
+          chat_id: envelope.chatId,
+          message_id: envelope.message_id
+        });
+      });
+    }
   }
 };
 
