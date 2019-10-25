@@ -5,11 +5,18 @@ const Downloader = require('./fileHandler');
 const media = require('../loader/cookieLoader');
 
 const ENTITIES_REGEX = /(&quot;)/gi;
+const welcomeText = `
+Hi There!
+
+Just share me a song from JioSaavn app and I will get back to you with the mp3 in original quality.
+
+It's simple as it sounds.
+`.trim();
 
 const welcomeHandler = bot => (msg, _) => {
   const chatId = msg.chat.id;
   bot
-    .sendMessage(chatId, 'Hello There!'.toString())
+    .sendMessage(chatId, welcomeText)
     .then(res => {})
     .catch(err => console.log(err));
 };
