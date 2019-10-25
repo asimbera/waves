@@ -1,10 +1,10 @@
 module.exports = {
-  Template: (doc, e_songid) => {
+  Template: doc => {
     return {
       text: `*${doc.title}*\n${'-'.repeat(35)}\n*Album:* [${doc.album}](${
         doc.album_url
       })\n*Singers:* ${doc.singers}\n*Year:* ${doc.year}`,
-      markup: () =>
+      markup: e_songid =>
         JSON.stringify({
           inline_keyboard: [
             [

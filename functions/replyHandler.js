@@ -48,26 +48,26 @@ const linkHandler = bot => async (msg, match) => {
       .then(async doc => {
         if (doc.exists) {
           console.log('found!');
-          const template = Template(doc.data(), e_songid);
+          const template = Template(doc.data());
           bot.editMessageText(template.text, {
             chat_id: chatId,
             message_id: waitMsg.message_id,
             parse_mode: 'Markdown',
             disable_web_page_preview: true,
-            reply_markup: template.markup()
+            reply_markup: template.markup(e_songid)
           });
         } else {
           console.log('not found');
           const metaData = await Media.getMetaData(absoluteUrl);
           const filteredMetadata = filteredMeta(metaData);
           collection.doc(e_songid).set(filteredMetadata);
-          const template = Template(filteredMetadata, e_songid);
+          const template = Template(filteredMetadata);
           await bot.editMessageText(template.text, {
             chat_id: chatId,
             message_id: waitMsg.message_id,
             parse_mode: 'Markdown',
             disable_web_page_preview: true,
-            reply_markup: template.markup()
+            reply_markup: template.markup(e_songid)
           });
         }
       })
