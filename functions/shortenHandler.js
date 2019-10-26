@@ -7,6 +7,6 @@ module.exports.shorten = async url => {
     },
     json: true
   });
-  if (!res.error) throw new Error(res.error);
+  if (res.error) throw new Error(res.error);
   return res.shorturl;
 };
