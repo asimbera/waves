@@ -54,7 +54,6 @@ const linkHandler = bot => async (msg, match) => {
       .get()
       .then(async doc => {
         if (doc.exists) {
-          console.log('found!');
           const template = Template(doc.data());
           bot.editMessageText(template.text, {
             chat_id: chatId,
@@ -64,7 +63,6 @@ const linkHandler = bot => async (msg, match) => {
             reply_markup: template.markup(e_songid)
           });
         } else {
-          console.log('not found');
           const metaData = await Media.getMetaData(absoluteUrl);
           const filteredMetadata = filteredMeta(metaData);
           collection.doc(e_songid).set(filteredMetadata);
@@ -131,15 +129,20 @@ const sendMedia = bot => async (doc, envelope, filename) => {
         message_id: envelope.message_id
       });
     } else {
-      const url = await media.getMediaInfo(doc.data().url, 128);
-      Downloader.fetchMedia(url.auth_url, filename, async () => {
-        const url = await Downloader.getUrl(filename, savename);
-        const shorturl = await shorten(url);
-        bot.editMessageReplyMarkup(markupBuilder(shorturl), {
-          chat_id: envelope.chatId,
-          message_id: envelope.message_id
+      try {
+        const url = await media.getMediaInfo(doc.data().url, 128);
+        if (!url.type) throw new Error('Internal Error!');
+        Downloader.fetchMedia(url.auth_url, filename, async () => {
+          const url = await Downloader.getUrl(filename, savename);
+          const shorturl = await shorten(url);
+          bot.editMessageReplyMarkup(markupBuilder(shorturl), {
+            chat_id: envelope.chatId,
+            message_id: envelope.message_id
+          });
         });
-      });
+      } catch (error) {
+        bot.sendMessage(envelope.chatId, error.message);
+      }
     }
   }
 };
