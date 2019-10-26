@@ -3,6 +3,7 @@ const { collection } = require('./firebaseHandler');
 const { Template } = require('./templateHandler');
 const Downloader = require('./fileHandler');
 const media = require('../loader/cookieLoader');
+const { shorten } = require('./shortenHandler');
 
 const ENTITIES_REGEX = /(&quot;)/gi;
 const welcomeText = `
@@ -17,7 +18,7 @@ const welcomeHandler = bot => (msg, _) => {
   const chatId = msg.chat.id;
   bot
     .sendMessage(chatId, welcomeText)
-    .then(res => {})
+    .then(_ => {})
     .catch(err => console.log(err));
 };
 
@@ -31,7 +32,6 @@ const linkHandler = bot => async (msg, match) => {
     year,
     image_url,
     album_url,
-    e_songid,
     url
   }) => {
     return JSON.parse(
@@ -125,7 +125,8 @@ const sendMedia = bot => async (doc, envelope, filename) => {
     const fileExist = await Downloader.checkExists(filename);
     if (fileExist) {
       const url = await Downloader.getUrl(filename, savename);
-      bot.editMessageReplyMarkup(markupBuilder(url), {
+      const shorturl = await shorten(url);
+      bot.editMessageReplyMarkup(markupBuilder(shorturl), {
         chat_id: envelope.chatId,
         message_id: envelope.message_id
       });
@@ -133,7 +134,8 @@ const sendMedia = bot => async (doc, envelope, filename) => {
       const url = await media.getMediaInfo(doc.data().url, 128);
       Downloader.fetchMedia(url.auth_url, filename, async () => {
         const url = await Downloader.getUrl(filename, savename);
-        bot.editMessageReplyMarkup(markupBuilder(url), {
+        const shorturl = await shorten(url);
+        bot.editMessageReplyMarkup(markupBuilder(shorturl), {
           chat_id: envelope.chatId,
           message_id: envelope.message_id
         });
