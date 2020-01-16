@@ -22,7 +22,7 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
     "dayjs": "^1.8.16",
-    "firebase-admin": "^8.6.1",
+    "firebase-admin": "^8.9.1",
     "node-telegram-bot-api": "^0.40.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.4"
