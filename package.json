@@ -21,7 +21,7 @@
   "homepage": "https://github.com/asimbera/waves#readme",
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
-    "dayjs": "^1.8.16",
+    "dayjs": "^1.8.26",
     "firebase-admin": "^8.6.1",
     "node-telegram-bot-api": "^0.40.0",
     "request": "^2.88.0",
